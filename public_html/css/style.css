@@ -1,0 +1,22 @@
+html,
+body {
+    height: 100%;
+}
+
+#cover {
+    background-color: aquamarine;
+    background-size: cover;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+#cover-caption {
+    width: 100%;
+    align-items: center;
+}
+
+.form-inline.form-group {
+    align-items: center;
+    text-align: center;
+}
