@@ -3,7 +3,8 @@ const bodyParser = require("body-parser");
 
 let app = express();
 const port = process.env.TKNEXCHG_PORT || 3000;
-
+const pingfed = "localhost:9031";
+const as_endpoint = "as/token.oauth2"
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(__dirname + '/public_html'));
@@ -22,16 +23,47 @@ app.get('/', (req,resp) => {
 });
 
 app.post('/auth', (req, resp) => {
+
+
   try {
     console.log("Auth end-point called");
-    console.log(`Username ${req.body.username}`);
-    console.log(`Password ${req.body.password}`);
+
+    const querystring = require("querystring");
+
+    const https = require("https");
+    const request = require("axios").create({
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false
+      })
+    });
+
+    let form_data = {'grant_type':'password',
+                      'username': `${req.body.username}`,
+                      'password': `${req.body.password}`,
+                      'client_id': 'ro_client'};
+
+    request.post(`https://${pingfed}/${as_endpoint}`,
+      querystring.stringify(form_data),
+      {headers: {'content-type': 'application/x-www-form-urlencoded'}})
+    .then((response) => {
+      //set the token_id cookie equal to the access_token from the oAuth2 server
+      resp.cookie('token_id', response.data.access_token, {maxAge: 360000});
+      //todo: redirect to an authorized webpage
+      resp.send("<html><body>completed</body></html>")
+    })
+      .catch((error) => {
+      console.log(error);
+    });
+
+
+
+
   }
-  catch
+  catch(error)
   {
-    console.log("Error Occured");
+    console.log(`Error Occured: ${error}`);
   }
-  resp.send("<html><body>completed</body></html>")
+
 });
 
 app.listen(port, () => {
