@@ -1,13 +1,18 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cookieParser = require('cookie-parser');
+let {authenticate} = require('../middleware/auth-validate');
 
 let app = express();
+
 const port = process.env.TKNEXCHG_PORT || 3000;
 const pingfed = "localhost:9031";
 const as_endpoint = "as/token.oauth2"
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(express.static(__dirname + '/public_html'));
+app.use(cookieParser());
+
+app.use(express.static(__dirname + '/../public_html'));
 
 //Create a console logger
 app.use((req, res, next) => {
@@ -18,8 +23,17 @@ app.use((req, res, next) => {
 
 
 app.get('/', (req,resp) => {
-  resp.send("index.html")
 
+  console.log('Requested index.html');
+  resp.sendFile("index.html")
+
+});
+
+//Use the authenticate middleware to ensure if the user is navigating
+//directly to this URL, that we make sure they have a valid token
+app.get('/home.html', authenticate, (req, resp) => {
+  console.log('Requested home.html');
+  resp.sendFile('protected_html/home.html', {root: __dirname + '/../'});
 });
 
 app.post('/auth', (req, resp) => {
@@ -47,9 +61,13 @@ app.post('/auth', (req, resp) => {
       {headers: {'content-type': 'application/x-www-form-urlencoded'}})
     .then((response) => {
       //set the token_id cookie equal to the access_token from the oAuth2 server
-      resp.cookie('token_id', response.data.access_token, {maxAge: 360000});
+      resp.cookie('_token_id', response.data.access_token, {maxAge: 360000});
       //todo: redirect to an authorized webpage
-      resp.send("<html><body>completed</body></html>")
+      //resp.redirect('../protected/home.html', {root: __dirname});
+      console.log(__dirname);
+      //resp.redirect('protected_html/home.html', {root: __dirname + '/../'});
+      resp.redirect('/home.html');
+
     })
       .catch((error) => {
       console.log(error);
