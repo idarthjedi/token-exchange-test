@@ -1,6 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const hbs = require('hbs');
+const jwt = require('njwt');
+
 let {authenticate} = require('../middleware/auth-validate');
 
 let app = express();
@@ -9,6 +12,9 @@ const port = process.env.TKNEXCHG_PORT || 3000;
 const pingfed = "localhost:9031";
 const as_endpoint = "as/token.oauth2"
 
+hbs.registerPartials(__dirname + '/../views/partials');
+
+app.set('view engine', 'hbs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
@@ -33,7 +39,21 @@ app.get('/', (req,resp) => {
 //directly to this URL, that we make sure they have a valid token
 app.get('/home.html', authenticate, (req, resp) => {
   console.log('Requested home.html');
-  resp.sendFile('protected_html/home.html', {root: __dirname + '/../'});
+  //todo:  need to verify the JWT token with njwt
+  //https://developer.okta.com/blog/2018/11/13/create-and-verify-jwts-with-node
+
+  //nJwt.verify(req.token, config.secret, function(err, decoded) {
+  //  if (err) {
+  //    return res.status(500).send({ auth: false, message: 'Could not authenticate token' });
+  //  }
+  //  req.userId = decoded.body.id;
+  //  next();
+  //});
+
+  resp.render('home.hbs',
+    {
+      firstName: 'joe'
+    });
 });
 
 app.post('/auth', (req, resp) => {
@@ -62,10 +82,7 @@ app.post('/auth', (req, resp) => {
     .then((response) => {
       //set the token_id cookie equal to the access_token from the oAuth2 server
       resp.cookie('_token_id', response.data.access_token, {maxAge: 360000});
-      //todo: redirect to an authorized webpage
-      //resp.redirect('../protected/home.html', {root: __dirname});
       console.log(__dirname);
-      //resp.redirect('protected_html/home.html', {root: __dirname + '/../'});
       resp.redirect('/home.html');
 
     })
